@@ -1,6 +1,7 @@
 '''Optimizes a simple diffractive focusing lens. See paper section 3.2, last paragraph.
 '''
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -74,7 +75,7 @@ class RGBCollimator(model.Model):
 
             # Downsample psf to image resolution & normalize to sum to 1
             psfs = optics.area_downsampling_tf(psfs, self.patch_size)
-            psfs = tf.div(psfs, tf.reduce_sum(psfs, axis=[1, 2], keep_dims=True))
+            psfs = tf.div(psfs, tf.reduce_sum(psfs, axis=[1, 2], keepdims=True))
             optics.attach_summaries('PSF', psfs, image=True, log_image=True)
 
             # Image formation: PSF is convolved with input image

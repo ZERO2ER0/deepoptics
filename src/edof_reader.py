@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import os
+import pdb
 
 from glob import glob
 
@@ -83,3 +84,82 @@ def get_edof_training_queue(target_dir, patch_size, batch_size, num_depths=4, co
     tf.summary.image('depth', tf.cast(depth_batch, tf.float32))
 
     return image_batch, depth_batch, depth_bins
+
+def get_nyu_training_queue(target_dir, patch_size, batch_size, num_depths=4, color=False,
+                            num_threads=4, loop=True, filetype='png'):
+
+    image_dir = os.path.join(target_dir, 'rgb')
+    depth_dir = os.path.join(target_dir, 'depth')
+
+    imagesName = os.listdir(image_dir)
+    image_list=[]
+    depth_list=[]
+    for imageName in imagesName:
+        image_path = os.path.join(image_dir, imageName)
+        depth_path = os.path.join(depth_dir, imageName)
+        image_list.append(image_path)
+        depth_list.append(depth_path)
+
+    image_list = tf.convert_to_tensor(image_list, dtype=tf.string)
+    depth_list = tf.convert_to_tensor(depth_list, dtype=tf.string)
+
+    image_queue, depth_queue = tf.train.slice_input_producer([image_list, depth_list],
+                                                    num_epochs=None if loop else 1,
+                                                    shuffle=True if loop else False)
+   
+    # image_reader = tf.WholeFileReader()
+
+    image_file = tf.read_file(image_queue)
+    depth_file = tf.read_file(depth_queue)
+
+    if filetype == 'jpg':
+        if color:
+            print("Using color images")
+            image = tf.image.decode_jpeg(image_file,
+                                         channels=0)
+        else:
+            print("Using black and white images")
+            image = tf.image.decode_jpeg(image_file,
+                                         channels=1)
+        depth = tf.image.decode_jpeg(depth_file, channels =1)
+    elif filetype == 'png':
+        if color:
+            print("Using color images")
+            image = tf.image.decode_png(image_file,
+                                        channels=0)
+        else:
+            print("Using black and white images")
+            image = tf.image.decode_png(image_file,
+                                        channels=1)
+        depth = tf.image.decode_png(depth_file, channels =1)
+
+    image = tf.cast(image, tf.float32)  # Shape [height, width, 1]
+    depth = tf.cast(depth, tf.float32)
+    # image = tf.expand_dims(image, 0)
+    image /= 255.
+
+    if color:
+        image_dims = [480, 640, 3]
+    else:
+        image_dims = [480, 640, 1]
+    depth_dims = [480, 640, 1]
+
+    image_batch, depth_batch = tf.train.batch([image, depth],
+                                              shapes=[image_dims, depth_dims],
+                                              batch_size=batch_size,
+                                              num_threads=num_threads,
+                                              capacity=4 * batch_size)
+    tf.summary.image("input_img", image_batch)
+    tf.summary.scalar("input_img_max", tf.reduce_max(image_batch))
+    tf.summary.scalar("input_img_min", tf.reduce_min(image_batch))
+    # tf.summary.histogram('depth', depth_bins)
+    tf.summary.image('depth', tf.cast(depth_batch, tf.float32))
+
+    return image_batch, depth_batch
+def _parse_function(filename, label):
+  image_string = tf.read_file(filename)
+  image_decoded = tf.image.decode_jpeg(image_string, channels=3)          # (1)
+  image = tf.cast(image_decoded, tf.float32)
+
+  image = tf.image.resize_images(image, [224, 224])  # (2)
+  return image, filename, label

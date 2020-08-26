@@ -4,8 +4,8 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--img_dir', type=str, required=True, help='Path to the training images.')
-parser.add_argument('--log_dir', type=str, required=True,
+parser.add_argument('--img_dir', type=str,required=True, help='Path to the training images.')
+parser.add_argument('--log_dir', type=str,required=True,
                     help='Directory that checkpoints and tensorboard logfiles will be written to.')
 opt = parser.parse_args()
 
