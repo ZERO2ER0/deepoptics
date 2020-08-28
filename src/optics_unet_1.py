@@ -2,7 +2,7 @@
 '''
 import pdb
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -43,8 +43,32 @@ class ExtendedDepthOfFieldModel(model.Model):
         input_img, depth_map = x_train
 
         with tf.device('/device:GPU:0'):
+            height_map = optics.get_fourier_height_map(self.wave_resolution[0],
+                                                       0.75,
+                                                       height_map_regularizer=optics.laplace_l1_regularizer(
+                                                       hm_reg_scale))
+
+            optical_system = optics.SingleLensSetup(height_map=height_map,
+                                        wave_resolution=self.wave_resolution,
+                                        wave_lengths=self.wave_lengths,
+                                        sensor_distance=self.sensor_distance,
+                                        sensor_resolution=(self.patch_size, self.patch_size),
+                                        input_sample_interval=self.sampling_interval,
+                                        refractive_idcs=self.refractive_idcs,
+                                        height_tolerance=height_map_noise,
+                                        use_planar_incidence=False,
+                                        depth_bins=self.depth_bins,
+                                        upsample=False,
+                                        psf_resolution=self.wave_resolution,
+                                        target_distance=None)
+
+            sensor_img = optical_system.get_sensor_img(input_img=input_img,
+                                                       noise_sigma=None,
+                                                       depth_dependent=True,
+                                                       depth_map=depth_map)
+            
             U_net = net.U_Net()
-            output_image = U_net.build(input_img)
+            output_image = U_net.build(sensor_img)
  
             optics.attach_summaries('output_image', output_image, image=True, log_image=False)
 
@@ -61,13 +85,13 @@ class ExtendedDepthOfFieldModel(model.Model):
         return loss
 
     def _get_training_queue(self, batch_size):
-        image_batch, depth_batch = edof_reader.get_nyu_training_queue(opt.img_dir,
+        image_batch, depth_idx_batch, self.depth_bins = edof_reader.get_nyu_training_queue(opt.img_dir,
                                                                     patch_size=self.patch_size,
                                                                     batch_size=batch_size,
                                                                     num_depths=3,
                                                                     color=True)
 
-        return (image_batch, depth_batch), depth_batch
+        return (image_batch, depth_idx_batch), depth_idx_batch
 
 
 if __name__ == '__main__':
@@ -78,10 +102,10 @@ if __name__ == '__main__':
     refractive_idcs = np.array([1.4648, 1.4599, 1.4568])
     wave_lenghts = np.array([460, 550, 640]) * 1e-9
     ckpt_path = None
-    num_steps = 20001
-    patch_size = 1248
+    num_steps = 40001
+    patch_size = 480
     sampling_interval = 2e-6
-    wave_resolution = 2496, 2496
+    wave_resolution = 960, 960
 
     eof_model = ExtendedDepthOfFieldModel(sensor_distance=sensor_distance,
                                           refractive_idcs=refractive_idcs,
@@ -93,11 +117,11 @@ if __name__ == '__main__':
 
     eof_model.fit(model_params={'hm_reg_scale': 0., 'init_gamma': 2., 'height_map_noise': 20e-9},
                   opt_type='Adam',
-                  opt_params={'beta1': 0.5, 'beta2': 0.999},
+                  opt_params={'beta1': 0.8, 'beta2': 0.999},
                 #   decay_type='polynomial',
                 #   decay_params={'decay_steps': num_steps, 'end_learning_rate': 1e-10},
                   batch_size=1,
-                  starter_learning_rate=0.0005,
+                  starter_learning_rate=0.0000005,
                   num_steps_until_save=500,
                   num_steps_until_summary=200,
                   logdir=opt.log_dir,

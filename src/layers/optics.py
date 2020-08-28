@@ -6,6 +6,7 @@ import numpy as np
 from numpy.fft import ifftshift
 import fractions
 import poppy
+import pdb
 
 ##############################
 # Helper functions
@@ -149,7 +150,7 @@ def attach_summaries(name, var, image=False, log_image=False):
     tf.summary.scalar(name + '_mean', tf.reduce_mean(var))
     tf.summary.scalar(name + '_max', tf.reduce_max(var))
     tf.summary.scalar(name + '_min', tf.reduce_min(var))
-    tf.summary.histogram(name + '_histogram', var)
+    # tf.summary.histogram(name + '_histogram', var)
 
 
 def fftshift2d_tf(a_tensor):
@@ -889,7 +890,10 @@ class SingleLensSetup():
         # Down sample measured image to match sensor resolution.
         if self.upsample:
             sensor_img = area_downsampling_tf(sensor_img, self.sensor_resolution[0])
-        noisy_img = self.noise_model(sensor_img, noise_sigma)
+        if noise_sigma is not None:
+            noisy_img = self.noise_model(sensor_img, noise_sigma)
+        else:
+            noisy_img  = sensor_img
 
         # print("Additive noise of %0.2e"%noise_sigma)
         attach_summaries("Sensor_img", noisy_img, image=True, log_image=False)

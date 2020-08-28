@@ -5,6 +5,7 @@ import abc
 
 from tensorflow.python import debug as tf_debug
 import numpy as np
+import pdb
 
 class Model(abc.ABC):
     """Generic tensorflow model class.
@@ -191,7 +192,6 @@ class Model(abc.ABC):
         # Get all summaries
         summaries_merged = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(logdir, self.sess.graph, flush_secs=60)
-
         # Init op
         init = tf.global_variables_initializer()
         self.sess.run(init, feed_dict=feed_dict)

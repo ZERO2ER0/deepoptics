@@ -2,8 +2,9 @@ import tensorflow as tf
 
 
 class Conv_block():
-    def __init__(self, ch_in, ch_out, kernel_size=3):
+    def __init__(self, ch_in, ch_out, name, kernel_size=3,):
         super(Conv_block, self).__init__()
+        # with tf.variable_scope(name):
         self.conv = tf.keras.Sequential((
             tf.keras.layers.Conv2D(filters = ch_in, kernel_size = 3, padding='SAME'),
             tf.keras.layers.BatchNormalization(),
@@ -14,8 +15,9 @@ class Conv_block():
         ))
 
 class Up_conv():
-    def __init__(self, ch_in, ch_out, kernel_size=3):
+    def __init__(self, ch_in, ch_out, name, kernel_size=3):
         super(Up_conv, self).__init__()
+        # with tf.variable_scope(name):
         self.up = tf.keras.Sequential((
             tf.keras.layers.UpSampling2D(),
             tf.keras.layers.Conv2D(filters = ch_out, kernel_size = 3, padding='SAME'),
@@ -27,23 +29,23 @@ class U_Net():
         super(U_Net,self).__init__()
         self.Maxpool = tf.keras.layers.MaxPool2D()
 
-        self.Conv1 = Conv_block(ch_in=img_ch,ch_out=64)
-        self.Conv2 = Conv_block(ch_in=64,ch_out=128)
-        self.Conv3 = Conv_block(ch_in=128,ch_out=256)
-        self.Conv4 = Conv_block(ch_in=256,ch_out=512)
-        self.Conv5 = Conv_block(ch_in=512,ch_out=1024)
+        self.Conv1 = Conv_block(ch_in=img_ch,ch_out=64,name = 'C1')
+        self.Conv2 = Conv_block(ch_in=64,ch_out=128, name = 'C2')
+        self.Conv3 = Conv_block(ch_in=128,ch_out=256, name = 'C3')
+        self.Conv4 = Conv_block(ch_in=256,ch_out=512, name = 'C4')
+        self.Conv5 = Conv_block(ch_in=512,ch_out=1024, name = 'C5')
 
-        self.Up5 = Up_conv(ch_in=1024,ch_out=512)
-        self.Up_conv5 = Conv_block(ch_in=1024, ch_out=512)
+        self.Up5 = Up_conv(ch_in=1024,ch_out=512, name = 'U5')
+        self.Up_conv5 = Conv_block(ch_in=1024, ch_out=512, name= 'Uc5')
 
-        self.Up4 = Up_conv(ch_in=512,ch_out=256)
-        self.Up_conv4 = Conv_block(ch_in=512, ch_out=256)
+        self.Up4 = Up_conv(ch_in=512,ch_out=256, name  = 'U4')
+        self.Up_conv4 = Conv_block(ch_in=512, ch_out=256, name = 'Uc4')
         
-        self.Up3 = Up_conv(ch_in=256,ch_out=128)
-        self.Up_conv3 = Conv_block(ch_in=256, ch_out=128)
+        self.Up3 = Up_conv(ch_in=256,ch_out=128, name = 'U3')
+        self.Up_conv3 = Conv_block(ch_in=256, ch_out=128, name ='Uc3')
         
-        self.Up2 = Up_conv(ch_in=128,ch_out=64)
-        self.Up_conv2 = Conv_block(ch_in=128, ch_out=64)
+        self.Up2 = Up_conv(ch_in=128,ch_out=64,name = 'U2')
+        self.Up_conv2 = Conv_block(ch_in=128, ch_out=64, name = 'Uc2')
 
         self.Conv_1x1 = tf.keras.layers.Conv2D(1, kernel_size=output_ch, use_bias=False)
     def build(self, x):

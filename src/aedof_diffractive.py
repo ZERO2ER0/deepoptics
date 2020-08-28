@@ -1,6 +1,7 @@
 '''Optimizes a diffractive extended-depth-of-field lens. See paper section 4.
 '''
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--img_dir', type=str, required=True, help='Path to the training images.')
